@@ -3,7 +3,7 @@ require 'rubygems'
 require 'sinatra'
 
 get '/' do
-  @wallimcgee =WalliMcGee.new
+  @wallimcgee ||= WalliMcGee.new
   <<-HTML
 <html>
   <head>
@@ -112,9 +112,9 @@ class WalliMcGee
     'The Hemlock'
   ]
   
-  def speak(speaking_as=nil)
-    speaking_as ||= %w(willotoons spangley)[rand(2)]
-    ERB.new("#{speaking_as}: #{phrase}").result(binding)
+  def speak
+    @speaking_as = %w(willotoons spangley)[rand(2)]
+    ERB.new("#{@speaking_as}: #{phrase}").result(binding)
   end
     
   def location; Locations[rand(Locations.size)] end
