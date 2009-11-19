@@ -5,7 +5,7 @@ require 'sinatra'
 
 class Array
   def sum
-    reduce(:+)
+    inject( nil ) { |sum,x| sum ? sum+x : x }
   end
   
   def to_sentence
