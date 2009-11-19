@@ -3,68 +3,63 @@
 require 'rubygems'
 require 'sinatra'
 
-configure do
-
-  class Array
-    def to_sentence
-      case size
-        when 0 then ""
-        when 1 then self[0].to_s
-        when 2
-          "#{self[0]} and #{self[1]}"
-        else
-          "#{self[0...-1].join(', ')}, and #{self[-1]}"
-      end
-    end
-
-    def sum
-      inject( nil ) { |sum,x| sum ? sum+x : x }
+class Array
+  def sum
+    reduce(:+)
+  end
+  
+  def to_sentence
+    case size
+      when 0 then ""
+      when 1 then self[0].to_s
+      when 2 then "#{self[0]} and #{self[1]}"
+      else "#{self[0...-1].join(', ')}, and #{self[-1]}"
     end
   end
+end
 
-  class PeepList
-
-    def initialize(peep_hash)
-      @peeps = []
-      @weights = []
-      @total_weight = peep_hash.values.sum
-      sorted_peeps = peep_hash.sort {|a,b| b[1]<=>a[1]}
-  
-      sorted_peeps.each do |peep, weight|
-        @peeps << peep
-        @weights << weight
-      end
-    end
-
-    def random_peeps(peep_count, excluded_peeps = [])
-      rpeeps = []
-      excluded_peeps = excluded_peeps.to_a
-  
-      peep_count.times do
-        peep = nil
-        begin
-          peep = self.random_peep
-        end while(rpeeps.include?(peep) || excluded_peeps.include?(peep))
+class PeepList
+  def initialize(peep_hash)
+    @peeps = []
+    @weights = []
+    @total_weight = peep_hash.values.sum
     
-        rpeeps << peep
-      end
-  
-      rpeeps
+    sorted_peeps = peep_hash.sort {|a,b| b[1]<=>a[1]}
+    sorted_peeps.each do |peep, weight|
+      @peeps << peep
+      @weights << weight
     end
-
-    def random_peep
-      @peeps[weighted_random_index]
-    end
-
-    def weighted_random_index
-      @peeps.size.times do |x|
-        return x if rand(@total_weight) < @weights[0..x].sum
-      end
-      return 0
-    end
-
   end
 
+  def random_peeps(peep_count, excluded_peeps = [])
+    rpeeps = []
+    excluded_peeps = excluded_peeps.to_a
+
+    peep_count.times do
+      peep = nil
+      begin
+        peep = self.random_peep
+      end while(rpeeps.include?(peep) || excluded_peeps.include?(peep))
+  
+      rpeeps << peep
+    end
+
+    rpeeps
+  end
+
+  def random_peep
+    @peeps[weighted_random_index]
+  end
+
+  def weighted_random_index
+    @peeps.size.times do |x|
+      return x  if rand(@total_weight) < @weights[0..x].sum
+    end
+    return 0
+  end
+end
+
+configure do
   # twitter name => frequency of hangouts
   PEEP_LIST = PeepList.new(
     'aprilini' => 0.1,
@@ -98,24 +93,25 @@ configure do
     'Zeitgeist',
     'The Hemlock'
   ]
-
 end
 
 helpers do
+  def speaker; %w(willotoons spangley)[rand(2)] end
+  
   def location; LOCATIONS[rand(LOCATIONS.size)] end
 
   def peeps(speaking_as)
-   how_many = rand(5) + 1
-   peeps = PEEP_LIST.random_peeps(how_many, speaking_as)
-   peeps.map { |name| "@#{name}" }.to_sentence
+    how_many = rand(4) + 1
+    peep_list = PEEP_LIST.random_peeps(how_many, speaking_as)
+    peep_list.collect! { |name| "@#{name}" }
+    peep_list.to_sentence
   end
 
   def phrase; PHRASES[rand(PHRASES.size)] end
-  
 end
 
 get '/' do
-  @speaking_as = %w(willotoons spangley)[rand(2)]
+  @speaking_as = speaker
   
   erb <<-ERB
 <html>
@@ -123,7 +119,7 @@ get '/' do
     <title>WalliMcGee</title>
   </head>
   <body>
-    <h1><%= @speaking_as %>: #{phrase}</h1>
+    <h1>@<%= @speaking_as %>: #{phrase}</h1>
   </body>
 </html>
   ERB
